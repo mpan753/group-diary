@@ -1,5 +1,5 @@
 /*
- * src/tutorial/complex.c
+ * src/tutorial/email.c
  * modified by Lujie Wang & Pan Meng
  *
  ******************************************************************************
@@ -16,28 +16,29 @@
 
 PG_MODULE_MAGIC;
 
-typedef struct Complex
-{
-	double		x;
-	double		y;
-}	Complex;
+typedef struct Email {
+    char local[128];
+    char domain[128];
+} Email;
 
 /*
  * Since we use V1 function calling convention, all these functions have
  * the same signature as far as C is concerned.  We provide these prototypes
  * just to forestall warnings when compiled with gcc -Wmissing-prototypes.
  */
-Datum		complex_in(PG_FUNCTION_ARGS);
-Datum		complex_out(PG_FUNCTION_ARGS);
-Datum		complex_recv(PG_FUNCTION_ARGS);
-Datum		complex_send(PG_FUNCTION_ARGS);
-Datum		complex_add(PG_FUNCTION_ARGS);
-Datum		complex_abs_lt(PG_FUNCTION_ARGS);
-Datum		complex_abs_le(PG_FUNCTION_ARGS);
-Datum		complex_abs_eq(PG_FUNCTION_ARGS);
-Datum		complex_abs_ge(PG_FUNCTION_ARGS);
-Datum		complex_abs_gt(PG_FUNCTION_ARGS);
-Datum		complex_abs_cmp(PG_FUNCTION_ARGS);
+Datum email_in(PG_FUNCTION_ARGS);
+Datum email_out(PG_FUNCTION_ARGS);
+Datum email_recv(PG_FUNCTION_ARGS);
+Datum email(PG_FUNCTION_ARGS);
+Datum email_add(PG_FUNCTION_ARGS);
+/*
+  Datum		complex_abs_lt(PG_FUNCTION_ARGS);
+  Datum		complex_abs_le(PG_FUNCTION_ARGS);
+  Datum		complex_abs_eq(PG_FUNCTION_ARGS);
+  Datum		complex_abs_ge(PG_FUNCTION_ARGS);
+  Datum		complex_abs_gt(PG_FUNCTION_ARGS);
+  Datum		complex_abs_cmp(PG_FUNCTION_ARGS);
+*/
 
 
 /*****************************************************************************
@@ -47,36 +48,30 @@ Datum		complex_abs_cmp(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(complex_in);
 
 Datum
-complex_in(PG_FUNCTION_ARGS)
-{
-	char	   *str = PG_GETARG_CSTRING(0);
-	double		x,
-				y;
-	Complex    *result;
+email_in(PG_FUNCTION_ARGS) {
+    char *str = PG_GETARG_CSTRING(0);
+    char *local, *domain;
+    Email *result;
+    if (sscanf(str, "%128s@%128s", &local, &domain) != 2)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+                 errmsg("invalid input syntax for email: \"%s\"", str)));
 
-	if (sscanf(str, " ( %lf , %lf )", &x, &y) != 2)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for complex: \"%s\"",
-						str)));
-
-	result = (Complex *) palloc(sizeof(Complex));
-	result->x = x;
-	result->y = y;
-	PG_RETURN_POINTER(result);
+    result = (Email *) palloc(sizeof(Email));
+    result->local = local;
+    result->domain = domain;
+    PG_RETURN_POINTER(result);
 }
 
 PG_FUNCTION_INFO_V1(complex_out);
 
 Datum
-complex_out(PG_FUNCTION_ARGS)
-{
-	Complex    *complex = (Complex *) PG_GETARG_POINTER(0);
-	char	   *result;
+complex_out(PG_FUNCTION_ARGS) {
+    Complex    *complex = (Complex *) PG_GETARG_POINTER(0);
+    char	   *result;
 
-	result = (char *) palloc(100);
-	snprintf(result, 100, "(%g,%g)", complex->x, complex->y);
-	PG_RETURN_CSTRING(result);
+    result = (char *) palloc(100);
+    snprintf(result, 100, "(%g,%g)", complex->x, complex->y);
+    PG_RETURN_CSTRING(result);
 }
 
 /*****************************************************************************
