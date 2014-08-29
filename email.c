@@ -21,6 +21,8 @@ typedef struct Email {
     char* domain;
 } Email;
 
+char *strlwr(char *);
+
 /*
  * Since we use V1 function calling convention, all these functions have
  * the same signature as far as C is concerned.  We provide these prototypes
@@ -44,6 +46,7 @@ Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
 Datum email_abs_cmp(PG_FUNCTION_ARGS);
 
 
+
 /*****************************************************************************
  * Input/Output functions
  *****************************************************************************/
@@ -53,9 +56,13 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-    char *local, *domain;
+    char *local = (char *) palloc(sizeof(char *));
+    char *domain = (char *) palloc(sizeof(char *));
     Email *result;
-    if (sscanf(str, "%128s@%128s", local, domain) != 2)
+
+    char *lowercase = strlwr(str);
+
+    if (sscanf(lowercase, "%[_a-zA-Z0-9.]@%[_a-zA-Z0-9.]", local, domain) != 2)
         ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                  errmsg("invalid input syntax for email: \"%s\"", str)));
 
@@ -65,6 +72,25 @@ email_in(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(result);
 }
 
+char *strlwr(char *string) {
+	size_t len = strlen(string);
+
+	char *email = malloc(sizeof(char *));
+
+        int i;
+	for (i = 0; i < len; ++i)
+	{
+		if (isalpha(string[i]))
+		{
+			email[i] = (tolower(string[i]));
+
+		} else {
+			email[i] = string[i];
+		}
+	}
+	return email;
+}
+
 PG_FUNCTION_INFO_V1(email_out);
 
 Datum
@@ -72,8 +98,8 @@ email_out(PG_FUNCTION_ARGS) {
     Email *email = (Email *) PG_GETARG_POINTER(0);
     char *result;
 
-    result = (char *) palloc(100);
-    snprintf(result, 100, "(%s@%s)", email->local, email->domain);
+    result = (char *) palloc(257);
+    snprintf(result, 257, "(%s@%s)", email->local, email->domain);
     PG_RETURN_CSTRING(result);
 }
 
@@ -243,6 +269,7 @@ email_abs_not_same_domain(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(!internal_same_domain(a, b));
 }
 
+/*
 void string_to_lower(char* string) {
     int i = 0;
     while(string[i] != '\0'){
@@ -251,3 +278,5 @@ void string_to_lower(char* string) {
     }
     return 0;
 }
+
+*/
