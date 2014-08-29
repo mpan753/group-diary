@@ -95,61 +95,10 @@ CREATE TABLE test_email (
 -- data for user-defined types are just strings in the proper textual
 -- representation.
 
-INSERT INTO test_email VALUES ('(1.0, 2.5)', '(4.2, 3.55 )');
-INSERT INTO test_email VALUES ('(33.0, 51.4)', '(100.42, 93.55)');
+INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'kenzoEVE@zmail.unsw.edu.au');
+INSERT INTO test_email VALUES ('ashnh633_2014@mail.com', 'kenzoEVE@163.com');
 
 SELECT * FROM test_email;
-
------------------------------
--- Creating an operator for the new type:
---	Let's define an add operator for email types. Since POSTGRES
---	supports function overloading, we'll use + as the add operator.
---	(Operator names can be reused with different numbers and types of
---	arguments.)
------------------------------
-
--- first, define a function email_add (also in email.c)
-CREATE FUNCTION email_add(email, email)
-   RETURNS email
-   AS '_OBJWD_/email'
-   LANGUAGE C IMMUTABLE STRICT;
-
--- we can now define the operator. We show a binary operator here but you
--- can also define unary operators by omitting either of leftarg or rightarg.
-CREATE OPERATOR + (
-   leftarg = email,
-   rightarg = email,
-   procedure = email_add,
-   commutator = +
-);
-
-
-SELECT (a + b) AS c FROM test_email;
-
--- Occasionally, you may find it useful to cast the string to the desired
--- type explicitly. :: denotes a type cast.
-
-SELECT  a + '(1.0,1.0)'::email AS aa,
-        b + '(1.0,1.0)'::email AS bb
-   FROM test_email;
-
-
------------------------------
--- Creating aggregate functions
---	you can also define aggregate functions. The syntax is somewhat
---	cryptic but the idea is to express the aggregate in terms of state
---	transition functions.
------------------------------
-
-CREATE AGGREGATE email_sum (
-   sfunc = email_add,
-   basetype = email,
-   stype = email,
-   initcond = '(0,0)'
-);
-
-SELECT email_sum(a) FROM test_email;
-
 
 -----------------------------
 -- Interfacing New Types with Indexes:
@@ -235,20 +184,20 @@ CREATE OPERATOR CLASS email_abs_ops
         FUNCTION        1       email_abs_cmp(email, email);
 
 
--- now, we can define a btree index on complex types. First, let's populate
+-- now, we can define a btree index on email types. First, let's populate
 -- the table. Note that postgres needs many more tuples to start using the
 -- btree index during selects.
-INSERT INTO test_complex VALUES ('(56.0,-22.5)', '(-43.2,-0.07)');
-INSERT INTO test_complex VALUES ('(-91.9,33.6)', '(8.6,3.0)');
+INSERT INTO test_email VALUES ('aaa@bbb.com', 'abc@cde.com');
+INSERT INTO test_email VALUES ('EFG@GHI.com', 'AAAAAAAA@BBBBBB.CC');
 
-CREATE INDEX test_cplx_ind ON test_complex
-   USING btree(a complex_abs_ops);
+CREATE INDEX test_cplx_ind ON test_email
+   USING btree(a email_abs_ops);
 
-SELECT * from test_complex where a = '(56.0,-22.5)';
-SELECT * from test_complex where a < '(56.0,-22.5)';
-SELECT * from test_complex where a > '(56.0,-22.5)';
+SELECT * from test_email where a = 'ashnh@hotmail.com';
+SELECT * from test_email where a < 'ashnh@hotmail.com';
+SELECT * from test_email where a > 'ashnh@hotmail.com';
 
 
 -- clean up the example
-DROP TABLE test_complex;
-DROP TYPE complex CASCADE;
+DROP TABLE test_email;
+DROP TYPE email CASCADE;
