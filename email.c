@@ -56,8 +56,8 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-    char *local = (char *) palloc(sizeof(char *));
-    char *domain = (char *) palloc(sizeof(char *));
+    char *local = (char *) malloc(sizeof(char *));
+    char *domain = (char *) malloc(sizeof(char *));
     Email *result;
 
     char *lowercase = strlwr(str);
@@ -72,22 +72,25 @@ email_in(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(result);
 }
 
-char *strlwr(char *string) {
-	size_t len = strlen(string);
+char* strlwr(char *string) {
+	int len = strlen(string);
 
-	char *email = malloc(sizeof(char *));
+        /* Changed this line to "my style", since I am believing dynamic allocation for string
+         * and returning causes pointer error, which could be the issue. */
+	char *email = malloc(sizeof(char) * (len + 1));
 
         int i;
-	for (i = 0; i < len; ++i)
+	for (i = 0; i < len; ++i) //Or use "i <= len" to copy the ending '\0'
 	{
 		if (isalpha(string[i]))
 		{
-			email[i] = (tolower(string[i]));
+			email[i] = tolower(string[i]);
 
 		} else {
 			email[i] = string[i];
 		}
 	}
+        email[len] = '\0'; //Or delete this line for using above method.
 	return email;
 }
 
@@ -99,7 +102,7 @@ email_out(PG_FUNCTION_ARGS) {
     char *result;
 
     result = (char *) palloc(257);
-    snprintf(result, 257, "(%s@%s)", email->local, email->domain);
+    snprintf(result, 257, "%s@%s", email->local, email->domain);
     PG_RETURN_CSTRING(result);
 }
 

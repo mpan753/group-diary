@@ -1,4 +1,3 @@
---minor modification
 ---------------------------------------------------------------------------
 --
 -- email.sql-
@@ -70,10 +69,10 @@ CREATE FUNCTION email_send(email)
 CREATE TYPE email (
    internallength = 257,
    input = email_in,
-   output = email_out,
-   receive = email_recv,
-   send = email_send,
-   alignment = cstring
+   output = email_out--,
+   --receive = email_recv,
+   --send = email_send,
+   --alignment = cstring
 );
 
 
@@ -137,7 +136,7 @@ CREATE OPERATOR <= (
 );
 CREATE OPERATOR = (
    leftarg = email, rightarg = email, procedure = email_abs_eq,
-   commutator = = , negator = <>
+   commutator = = , negator = <> ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR >= (
@@ -152,17 +151,17 @@ CREATE OPERATOR > (
 );
 CREATE OPERATOR <> (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = <> , negator = =
+   commutator = <> , negator = = ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR ~ (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = ~ , negator = !~
+   commutator = ~ , negator = !~ ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR !~ (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = !~ , negator = ~
+   commutator = !~ , negator = ~ ,
    restrict = eqsel, join = eqjoinsel
 );
 
@@ -171,6 +170,7 @@ CREATE FUNCTION email_abs_cmp(email, email) RETURNS int4
    AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
+-------------------------Only 5 operators can be generated, careful!!!!------------
 CREATE OPERATOR CLASS email_abs_ops
     DEFAULT FOR TYPE email USING btree AS
         OPERATOR        1       < ,
@@ -178,9 +178,6 @@ CREATE OPERATOR CLASS email_abs_ops
         OPERATOR        3       = ,
         OPERATOR        4       >= ,
         OPERATOR        5       > ,
-	OPERATOR	6	<> ,
-	OPERATOR	7	~ ,
-	OPERATOR	8	!~ ,
         FUNCTION        1       email_abs_cmp(email, email);
 
 
