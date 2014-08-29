@@ -17,8 +17,8 @@
 PG_MODULE_MAGIC;
 
 typedef struct Email {
-    char local[128];
-    char domain[128];
+    char* local;
+    char* domain;
 } Email;
 
 /*
@@ -29,7 +29,7 @@ typedef struct Email {
 Datum email_in(PG_FUNCTION_ARGS);
 Datum email_out(PG_FUNCTION_ARGS);
 Datum email_recv(PG_FUNCTION_ARGS);
-Datum email(PG_FUNCTION_ARGS);
+Datum email_send(PG_FUNCTION_ARGS);
 Datum email_add(PG_FUNCTION_ARGS);
 /*
   Datum		complex_abs_lt(PG_FUNCTION_ARGS);
@@ -45,14 +45,14 @@ Datum email_add(PG_FUNCTION_ARGS);
  * Input/Output functions
  *****************************************************************************/
 
-PG_FUNCTION_INFO_V1(complex_in);
+PG_FUNCTION_INFO_V1(email_in);
 
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
     char *local, *domain;
     Email *result;
-    if (sscanf(str, "%128s@%128s", &local, &domain) != 2)
+    if (sscanf(str, "%128s@%128s", local, domain) != 2)
         ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                  errmsg("invalid input syntax for email: \"%s\"", str)));
 
@@ -62,15 +62,15 @@ email_in(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(result);
 }
 
-PG_FUNCTION_INFO_V1(complex_out);
+PG_FUNCTION_INFO_V1(email_out);
 
 Datum
-complex_out(PG_FUNCTION_ARGS) {
-    Complex    *complex = (Complex *) PG_GETARG_POINTER(0);
-    char	   *result;
+email_out(PG_FUNCTION_ARGS) {
+    Email *email = (Email *) PG_GETARG_POINTER(0);
+    char *result;
 
     result = (char *) palloc(100);
-    snprintf(result, 100, "(%g,%g)", complex->x, complex->y);
+    snprintf(result, 100, "(%s@%s)", email->local, email->domain);
     PG_RETURN_CSTRING(result);
 }
 
@@ -80,31 +80,29 @@ complex_out(PG_FUNCTION_ARGS) {
  * These are optional.
  *****************************************************************************/
 
-PG_FUNCTION_INFO_V1(complex_recv);
+PG_FUNCTION_INFO_V1(email_recv);
 
 Datum
-complex_recv(PG_FUNCTION_ARGS)
-{
-	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
-	Complex    *result;
+email_recv(PG_FUNCTION_ARGS) {
+    StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
+    Email *result;
 
-	result = (Complex *) palloc(sizeof(Complex));
-	result->x = pq_getmsgfloat8(buf);
-	result->y = pq_getmsgfloat8(buf);
-	PG_RETURN_POINTER(result);
+    result = (Email *) palloc(sizeof(Email));
+    result->local = pq_getmsgstring(buf);
+    result->domain = pq_getmsgstring(buf);
+    PG_RETURN_POINTER(result);
 }
 
-PG_FUNCTION_INFO_V1(complex_send);
+PG_FUNCTION_INFO_V1(email_send);
 
 Datum
-complex_send(PG_FUNCTION_ARGS)
-{
-	Complex    *complex = (Complex *) PG_GETARG_POINTER(0);
+email_send(PG_FUNCTION_ARGS) {
+	Email *email = (Email *) PG_GETARG_POINTER(0);
 	StringInfoData buf;
 
 	pq_begintypsend(&buf);
-	pq_sendfloat8(&buf, complex->x);
-	pq_sendfloat8(&buf, complex->y);
+	pq_sendstring(&buf, email->local);
+	pq_sendstring(&buf, email->domain);
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
@@ -114,19 +112,19 @@ complex_send(PG_FUNCTION_ARGS)
  * A practical Complex datatype would provide much more than this, of course.
  *****************************************************************************/
 
-PG_FUNCTION_INFO_V1(complex_add);
+PG_FUNCTION_INFO_V1(email_add);
 
 Datum
-complex_add(PG_FUNCTION_ARGS)
-{
-	Complex    *a = (Complex *) PG_GETARG_POINTER(0);
-	Complex    *b = (Complex *) PG_GETARG_POINTER(1);
-	Complex    *result;
+email_add(PG_FUNCTION_ARGS) {
+    Email *a = (Email *) PG_GETARG_POINTER(0);
+    Email *b = (Email *) PG_GETARG_POINTER(1);
+    Email *result;
 
-	result = (Complex *) palloc(sizeof(Complex));
-	result->x = a->x + b->x;
-	result->y = a->y + b->y;
-	PG_RETURN_POINTER(result);
+    result = (Email *) palloc(sizeof(Email));
+    /* Something need to change... */
+    result->x = a->x + b->x;
+    result->y = a->y + b->y;
+    PG_RETURN_POINTER(result);
 }
 
 
