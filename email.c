@@ -131,7 +131,11 @@ email_send(PG_FUNCTION_ARGS) {
 
 static int
 email_abs_cmp_internal(Email *a, Email *b) {
-    if (!strcmp(a->domain, b->domain)) {
+    if (strcmp(a->domain, b->domain) > 0)
+        return 1;
+    else if (strcmp(a->domain, b->domain) < 0)
+        return -1;
+    else {
         if (!strcmp(a->local, b->local))
             return 0;
         else if(strcmp(a->local, b->local) > 0)
@@ -139,10 +143,6 @@ email_abs_cmp_internal(Email *a, Email *b) {
         else
             return -1;
     }
-    else if (strcmp(a->domain, b->domain) > 0)
-        return 1;
-    else
-        return -1;
 }
 
 
