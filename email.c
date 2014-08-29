@@ -36,9 +36,11 @@ Datum email_abs_le(PG_FUNCTION_ARGS);
 Datum email_abs_eq(PG_FUNCTION_ARGS);
 Datum email_abs_ge(PG_FUNCTION_ARGS);
 Datum email_abs_gt(PG_FUNCTION_ARGS);
-
 Datum email_abs_ne(PG_FUNCTION_ARGS);
+
 Datum email_abs_same_domain(PG_FUNCTION_ARGS);
+Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
+
 Datum email_abs_cmp(PG_FUNCTION_ARGS);
 
 
@@ -127,7 +129,12 @@ email_send(PG_FUNCTION_ARGS) {
  * an internal three-way-comparison function, as we do here.
  *****************************************************************************/
 
-#define canonical(c) (to_lower(c);)
+static int
+internal_same_domain(Email *a, Email *b) {
+    if (!strcmp(a->local, b->local))
+        return 1;
+}
+
 
 static int
 email_abs_cmp_internal(Email *a, Email *b) {
@@ -176,6 +183,16 @@ email_abs_eq(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(email_abs_cmp_internal(a, b) == 0);
 }
 
+PG_FUNCTION_INFO_V1(email_abs_ne);
+
+Datum
+email_abs_ne(PG_FUNCTION_ARGS) {
+    Email *a = (Email *) PG_GETARG_POINTER(0);
+    Email *b = (Email *) PG_GETARG_POINTER(1);
+
+    PG_RETURN_BOOL(email_abs_cmp_internal(a, b) != 0);
+}
+
 PG_FUNCTION_INFO_V1(email_abs_ge);
 
 Datum
@@ -204,6 +221,26 @@ email_abs_cmp(PG_FUNCTION_ARGS) {
     Email *b = (Email *) PG_GETARG_POINTER(1);
 
     PG_RETURN_INT32(email_abs_cmp_internal(a, b));
+}
+
+PG_FUNCTION_INFO_V1(email_abs_same_domain);
+
+Datum
+email_abs_same_domain(PG_FUNCTION_ARGS) {
+    Email *a = (Email *) PG_GETARG_POINTER(0);
+    Email *b = (Email *) PG_GETARG_POINTER(1);
+
+    PG_RETURN_BOOL(internal_same_domain(a, b));
+}
+
+PG_FUNCTION_INFO_V1(email_abs_not_same_domain);
+
+Datum
+email_abs_not_same_domain(PG_FUNCTION_ARGS) {
+    Email *a = (Email *) PG_GETARG_POINTER(0);
+    Email *b = (Email *) PG_GETARG_POINTER(1);
+
+    PG_RETURN_BOOL(!internal_same_domain(a, b));
 }
 
 void string_to_lower(char* string) {
