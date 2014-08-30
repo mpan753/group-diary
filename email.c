@@ -42,9 +42,6 @@ Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
 
 Datum email_abs_cmp(PG_FUNCTION_ARGS);
 
-Datum pjw(PG_FUNCTION_ARGS);
-int PJWHash(char *);
-
 char *strlwr(char *);
 bool is_valid_email(char *);
 bool is_valid_local(char *);
@@ -283,38 +280,6 @@ email_abs_not_same_domain(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(!internal_same_domain(a, b));
 }
 
-PG_FUNCTION_INFO_V1(pjw);
-
-Datum
-pjw(PG_FUNCTION_ARGS) {
-    Email *a = (Email *) PG_GETARG_POINTER(0);
-    char *local = a->local;
-    char *domain = a->domain;
-    
-    int local_hash = PJWHash(local);
-    int domain_hash = PJWHash(domain);
-
-    int hash = local_hash + domain_hash;
-    PG_RETURN_INT32(hash);
-}
-
-int PJWHash(char *str) {  
-    long BitsInUnsignedInt = (long)(4 * 8);  
-    long ThreeQuarters     = (long)((BitsInUnsignedInt  * 3) / 4);  
-    long OneEighth         = (long)(BitsInUnsignedInt / 8);  
-    long HighBits          = (long)(0xFFFFFFFF) << (BitsInUnsignedInt - OneEighth);  
-    long hash              = 0;  
-    long test              = 0;
-    int i;
-    for(i = 0; i < strlen(str); i++) {  
-        hash = (hash << OneEighth) + str[i];  
-        if((test = hash & HighBits)  != 0) {  
-            hash = (( hash ^ (test >> ThreeQuarters)) & (~HighBits));  
-        }  
-    }  
-    return (int)hash;  
-}  
-
 bool is_valid_email(char *email) {
     char *local = (char *) malloc(sizeof(char *));
     char *domain = (char *) malloc(sizeof(char *));
@@ -350,8 +315,7 @@ char *strlwr(char *string) {
 
 	char *email = malloc(sizeof(char) * (len+1));
 
-        int i;
-	for (i = 0; i < len; ++i)
+	for (int i = 0; i < len; ++i)
 	{
 		if (isalpha(string[i]))
 		{
@@ -444,6 +408,4 @@ bool is_name_chars(char **pt_to_str) {
 	}
 	return true;
 }
-
-
 // end of check
