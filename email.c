@@ -272,6 +272,16 @@ email_abs_not_same_domain(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(!internal_same_domain(a, b));
 }
 
+PG_FUNCTION_INFO_V1(md5);
+
+Datum
+email_abs_cmp(PG_FUNCTION_ARGS) {
+    Email *a = (Email *) PG_GETARG_POINTER(0);
+    int md5;
+
+    PG_RETURN_INT32(email_abs_cmp_internal(a, b));
+}
+
 /*
 void string_to_lower(char* string) {
     int i = 0;

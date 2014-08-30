@@ -14,12 +14,16 @@ insert into UserSessions(username,loggedIn,loggedOut) values
 ;
 --(...XXX..)
 
+-- create the support function too
+CREATE FUNCTION md5(email) RETURNS int4
+   AS '/usr/local/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+
 -- now we can make the operator class
 -------------------------Only 5 operators can be generated, careful!!!!------------
 CREATE OPERATOR CLASS email_abs_ops
     DEFAULT FOR TYPE email USING hash AS
         OPERATOR        1       = ,
-        FUNCTION        1       email_abs_cmp(email, email);
+        FUNCTION        1       md5(email);
 
 
 create index on UserSessions using hash (username);
