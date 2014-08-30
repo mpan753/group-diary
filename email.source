@@ -28,10 +28,15 @@
 -- C code.  We also mark them IMMUTABLE, since they always return the
 -- same outputs given the same inputs.
 
+-- clean up the example
+DROP TABLE test_email;
+DROP TYPE email CASCADE;
+
 -- the input function 'email_in' takes a null-terminated string (the
 -- textual representation of the type) and turns it into the internal
 -- (in memory) representation. You will get a message telling you 'email'
 -- does not exist yet but that's okay.
+
 
 CREATE FUNCTION email_in(cstring)
    RETURNS email
@@ -195,7 +200,3 @@ SELECT * from test_email where a = 'ashnh@hotmail.com';
 SELECT * from test_email where a < 'ashnh@hotmail.com';
 SELECT * from test_email where a > 'ashnh@hotmail.com';
 
-
--- clean up the example
-DROP TABLE test_email;
-DROP TYPE email CASCADE;
