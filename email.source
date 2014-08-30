@@ -95,7 +95,7 @@ CREATE TABLE test_email (
 -- representation.
 
 INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'kenzoEVE@zmail.unsw.edu.au');
-INSERT INTO test_email VALUES ('ashnh633_2014@mail.com', 'kenzoEVE@163.com');
+INSERT INTO test_email VALUES ('ashnh633-2014@mail.com', 'kenzoEVE@163.com');
 
 SELECT * FROM test_email;
 
@@ -137,7 +137,8 @@ CREATE OPERATOR <= (
 CREATE OPERATOR = (
    leftarg = email, rightarg = email, procedure = email_abs_eq,
    commutator = = , negator = <> ,
-   restrict = eqsel, join = eqjoinsel
+   restrict = eqsel, join = eqjoinsel ,
+   HASHES
 );
 CREATE OPERATOR >= (
    leftarg = email, rightarg = email, procedure = email_abs_ge,

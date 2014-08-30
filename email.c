@@ -62,7 +62,7 @@ email_in(PG_FUNCTION_ARGS) {
 
     char *lowercase = strlwr(str);
 
-    if (sscanf(lowercase, "%[_a-zA-Z0-9.]@%[_a-zA-Z0-9.]", local, domain) != 2)
+    if (sscanf(lowercase, "%[-a-zA-Z0-9.]@%[-a-zA-Z0-9.]", local, domain) != 2)
         ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                  errmsg("invalid input syntax for email: \"%s\"", str)));
 
