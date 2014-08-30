@@ -1,4 +1,3 @@
---minor modification
 ---------------------------------------------------------------------------
 --
 -- email.sql-
@@ -15,11 +14,11 @@
 
 -----------------------------
 -- Creating a new type:
---  We are going to create a new type called 'email' which represents
---  email address.
---  A user-defined type must have an input and an output function, and
---  optionally can have binary input and output functions.  All of these
---  are usually user-defined C functions.
+--	We are going to create a new type called 'email' which represents
+--	email address.
+--	A user-defined type must have an input and an output function, and
+--	optionally can have binary input and output functions.  All of these
+--	are usually user-defined C functions.
 -----------------------------
 
 -- Assume the user defined functions are in _OBJWD_/email$DLSUFFIX
@@ -70,9 +69,9 @@ CREATE FUNCTION email_send(email)
 CREATE TYPE email (
    internallength = 257,
    input = email_in,
-   output = email_out--,
-   --receive = email_recv,
-   --send = email_send,
+   output = email_out,
+   receive = email_recv,
+   send = email_send--,
    --alignment = cstring
 );
 
@@ -82,7 +81,7 @@ CREATE TYPE email (
 
 -----------------------------
 -- Using the new type:
---  user-defined types can be used like ordinary built-in types.
+--	user-defined types can be used like ordinary built-in types.
 -----------------------------
 
 -- eg. we can use it in a table
@@ -96,14 +95,14 @@ CREATE TABLE test_email (
 -- representation.
 
 INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'kenzoEVE@zmail.unsw.edu.au');
-INSERT INTO test_email VALUES ('ashnh633_2014@mail.com', 'kenzoEVE@163.com');
+INSERT INTO test_email VALUES ('ashnh633-2014@mail.com', 'kenzoEVE@163.com');
 
 SELECT * FROM test_email;
 
 -----------------------------
 -- Interfacing New Types with Indexes:
---  We cannot define a secondary index (eg. a B-tree) over the new type
---  yet. We need to create all the required operators and support
+--	We cannot define a secondary index (eg. a B-tree) over the new type
+--	yet. We need to create all the required operators and support
 --      functions, then we can make the operator class.
 -----------------------------
 
@@ -137,8 +136,9 @@ CREATE OPERATOR <= (
 );
 CREATE OPERATOR = (
    leftarg = email, rightarg = email, procedure = email_abs_eq,
-   commutator = = , negator = <>
-   restrict = eqsel, join = eqjoinsel
+   commutator = = , negator = <> ,
+   restrict = eqsel, join = eqjoinsel ,
+   HASHES
 );
 CREATE OPERATOR >= (
    leftarg = email, rightarg = email, procedure = email_abs_ge,
@@ -152,17 +152,17 @@ CREATE OPERATOR > (
 );
 CREATE OPERATOR <> (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = <> , negator = =
+   commutator = <> , negator = = ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR ~ (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = ~ , negator = !~
+   commutator = ~ , negator = !~ ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR !~ (
    leftarg = email, rightarg = email, procedure = email_abs_ne,
-   commutator = !~ , negator = ~
+   commutator = !~ , negator = ~ ,
    restrict = eqsel, join = eqjoinsel
 );
 
@@ -171,6 +171,7 @@ CREATE FUNCTION email_abs_cmp(email, email) RETURNS int4
    AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
+-------------------------Only 5 operators can be generated, careful!!!!------------
 CREATE OPERATOR CLASS email_abs_ops
     DEFAULT FOR TYPE email USING btree AS
         OPERATOR        1       < ,
@@ -178,9 +179,6 @@ CREATE OPERATOR CLASS email_abs_ops
         OPERATOR        3       = ,
         OPERATOR        4       >= ,
         OPERATOR        5       > ,
-  OPERATOR  6 <> ,
-  OPERATOR  7 ~ ,
-  OPERATOR  8 !~ ,
         FUNCTION        1       email_abs_cmp(email, email);
 
 
