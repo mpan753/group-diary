@@ -15,7 +15,7 @@ insert into UserSessions(username,loggedIn,loggedOut) values
 --(...XXX..)
 
 -- create the support function too
-CREATE FUNCTION md5(email) RETURNS int4
+CREATE FUNCTION pjw(email) RETURNS int4
    AS '/usr/local/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
@@ -23,16 +23,16 @@ CREATE FUNCTION md5(email) RETURNS int4
 CREATE OPERATOR CLASS email_abs_ops
     DEFAULT FOR TYPE email USING hash AS
         OPERATOR        1       = ,
-        FUNCTION        1       md5(email);
+        FUNCTION        1       pjw(email);
 
 
 create index on UserSessions using hash (username);
 
 select a.username, a.loggedIn, b.loggedIn
 from   UserSessions a, UserSessions b
-where  a.uname = b.uname and a.loggedIn <> b.loggedIn;
+where  a.username = b.username and a.loggedIn <> b.loggedIn;
 
-select path,count(*)
-from   UserSessions
-group  by path;
+select count(*)
+from   UserSessions;
+--group  by path;
 drop table UserSessions;
