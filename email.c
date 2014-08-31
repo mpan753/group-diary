@@ -17,8 +17,10 @@
 PG_MODULE_MAGIC;
 
 typedef struct Email{
-    char *local;
-    char *domain;
+    char local[128];
+    char domain[128];
+    //char *local;
+    //char *domain;
 } Email;
 
 
@@ -72,10 +74,10 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-    char *local = (char *) malloc(sizeof(char *));
-    char *domain = (char *) malloc(sizeof(char *));
-//    char local[128];
-//    char domain[128];
+    char *local = (char *) malloc(sizeof(char) * 128);
+    char *domain = (char *) malloc(sizeof(char) * 128);
+    //char *local = (char *) malloc(sizeof(char *));
+    //char *domain = (char *) malloc(sizeof(char *));
 //    char *local = (char *) palloc(sizeof(128));
 //    char *domain = (char *) palloc(sizeof(128));
     Email *result;
@@ -86,18 +88,23 @@ email_in(PG_FUNCTION_ARGS) {
 //        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 //                 errmsg("invalid input syntax for email: \"%s\"", str)));
 
+    /*
     if ( !is_valid_email(email) ) {
     	ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
     			errmsg("invalid input syntax for email: \"%s\"", str)));
     }
+    */
+    //email = strlwr(str);
     sscanf(email, "%[-a-zA-Z0-9.]@%[-a-zA-Z0-9.]", local, domain);
 
     result = (Email *) palloc(sizeof(Email));
-    result->local = local;
-    result->domain = domain;
+    strcpy(result->local,  local);
+    strcpy(result->domain,  domain);
+    //result->local = local;
+    //result->domain = domain;
 
-//    free(local);
-//    free(domain);
+    //free(local);
+    //free(domain);
 //    free(email);
     PG_RETURN_POINTER(result);
 }
@@ -109,8 +116,8 @@ email_out(PG_FUNCTION_ARGS) {
     Email *email = (Email *) PG_GETARG_POINTER(0);
     char *result;
 
-    result = (char *) palloc(100);
-    snprintf(result, 100, "[%s@%s]", email->local, email->domain);
+    result = (char *) palloc(257);
+    snprintf(result, 257, "%s@%s", email->local, email->domain);
     PG_RETURN_CSTRING(result);
 
 	//	Datum email = PG_GETARG_DATUM(0);
@@ -131,8 +138,10 @@ email_recv(PG_FUNCTION_ARGS) {
     Email *result;
 
     result = (Email *) palloc(sizeof(Email));
-    result->local = pq_getmsgstring(buf);
-    result->domain = pq_getmsgstring(buf);
+    strcpy(result->local, pq_getmsgstring(buf));
+    strcpy(result->domain, pq_getmsgstring(buf));
+    //result->local = pq_getmsgstring(buf);
+    //result->domain = pq_getmsgstring(buf);
     PG_RETURN_POINTER(result);
 }
 
@@ -171,8 +180,9 @@ email_send(PG_FUNCTION_ARGS) {
 
 static int
 internal_same_domain(Email *a, Email *b) {
-    if (!strcmp(a->local, b->local))
+    if (!strcmp(a->domain, b->domain))
         return 1;
+    return 0;
 }
 
 
@@ -270,7 +280,7 @@ email_abs_same_domain(PG_FUNCTION_ARGS) {
     Email *a = (Email *) PG_GETARG_POINTER(0);
     Email *b = (Email *) PG_GETARG_POINTER(1);
 
-    PG_RETURN_BOOL(internal_same_domain(a, b));
+    PG_RETURN_BOOL(internal_same_domain(a, b) == 1);
 }
 
 PG_FUNCTION_INFO_V1(email_abs_not_same_domain);
@@ -280,7 +290,7 @@ email_abs_not_same_domain(PG_FUNCTION_ARGS) {
     Email *a = (Email *) PG_GETARG_POINTER(0);
     Email *b = (Email *) PG_GETARG_POINTER(1);
 
-    PG_RETURN_BOOL(!internal_same_domain(a, b));
+    PG_RETURN_BOOL(internal_same_domain(a, b) == 0);
 }
 
 PG_FUNCTION_INFO_V1(pjw);
@@ -318,35 +328,39 @@ int PJWHash(char *str) {
 bool is_valid_email(char *email) {
     char *local = (char *) malloc(sizeof(char *));
     char *domain = (char *) malloc(sizeof(char *));
-	char *reg_exp_mail = "^[a-z0-9.-]+@[a-z0-9.-]+$";
-	regex_t regex;
-	int pre;
-	pre = regcomp(&regex,reg_exp_mail,1);
-	pre = regexec(&regex, email, 0, NULL, 0);
-	if(pre){ // incorrect
-		return false;
-	}
-	regfree (&regex);
+    char *reg_exp_mail = "^[a-z0-9.-]+@[a-z0-9.-]+$";
+    regex_t regex;
+    int pre;
+    pre = regcomp(&regex,reg_exp_mail,1);
+    pre = regexec(&regex, email, 0, NULL, 0);
+    if(pre){ // incorrect
+        return false;
+    }
+    regfree (&regex);
 
-	if ( sscanf(email, "%[-a-zA-Z0-9.]@%s", local, domain) != 2 ) {
-		free(local);
-		free(domain);
-		return false;
-	}
+    if ( sscanf(email, "%[-a-zA-Z0-9.]@%s", local, domain) != 2 ) {
+        //free(local);
+        //free(domain);
+        return false;
+    }
 
-	if (!is_valid_local(local)) {
-		return false;
-	}
-	if(!is_valid_domain(domain)) {
-		return false;
-	}
-//	free(local);
-//	free(domain);
-	return true;
+    if (!is_valid_local(local)) {
+        //free(local);
+        //free(domain);
+        return false;
+    }
+    if(!is_valid_domain(domain)) {
+        //free(local);
+        //free(domain);
+        return false;
+    }
+    //free(local);
+    //free(domain);
+    return true;
 }
 
 char *strlwr(char *string) {
-	size_t len = strlen(string);
+	int len = strlen(string);
 
 	char *email = malloc(sizeof(char) * (len+1));
 
@@ -355,7 +369,7 @@ char *strlwr(char *string) {
 	{
 		if (isalpha(string[i]))
 		{
-			email[i] = (tolower(string[i]));
+			email[i] = tolower(string[i]);
 
 		} else {
 			email[i] = string[i];

@@ -76,8 +76,8 @@ CREATE TYPE email (
    input = email_in,
    output = email_out,
    receive = email_recv,
-   send = email_send--,
-   --alignment = cstring
+   send = email_send,
+   alignment = char
 );
 
 
@@ -101,6 +101,7 @@ CREATE TABLE test_email (
 
 INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'kenzoEVE@zmail.unsw.edu.au');
 INSERT INTO test_email VALUES ('ashnh633-2014@mail.com', 'kenzoEVE@163.com');
+INSERT INTO test_email VALUES ('ashnh@mail.com', 'k633@zmail.unsw.edu.au');
 
 SELECT * FROM test_email;
 
@@ -161,12 +162,12 @@ CREATE OPERATOR <> (
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR ~ (
-   leftarg = email, rightarg = email, procedure = email_abs_ne,
+   leftarg = email, rightarg = email, procedure = email_abs_same_domain,
    commutator = ~ , negator = !~ ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR !~ (
-   leftarg = email, rightarg = email, procedure = email_abs_ne,
+   leftarg = email, rightarg = email, procedure = email_abs_not_same_domain,
    commutator = !~ , negator = ~ ,
    restrict = eqsel, join = eqjoinsel
 );
@@ -200,3 +201,6 @@ SELECT * from test_email where a = 'ashnh@hotmail.com';
 SELECT * from test_email where a < 'ashnh@hotmail.com';
 SELECT * from test_email where a > 'ashnh@hotmail.com';
 
+--test for the ~ and !~ operators.
+select * from test_email where a ~ 'xxx@mail.com';
+select * from test_email where b !~ 'x@zmail.unsw.edu.au';
