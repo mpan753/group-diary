@@ -193,8 +193,9 @@ CREATE OPERATOR CLASS email_abs_ops
 -- btree index during selects.
 INSERT INTO test_email VALUES ('aaa@bbb.com', 'abc@cde.com');
 INSERT INTO test_email VALUES ('EFG@GHI.com', 'AAAAAAAA@BBBBBB.CC');
+INSERT INTO test_email VALUES ('EFG@hotmail.com', 'AAAAAAAA@hotmail.com');
 
-CREATE INDEX test_cplx_ind ON test_email
+CREATE INDEX test_email_ind ON test_email
    USING btree(a email_abs_ops);
 
 SELECT * from test_email where a = 'ashnh@hotmail.com';
@@ -202,5 +203,48 @@ SELECT * from test_email where a < 'ashnh@hotmail.com';
 SELECT * from test_email where a > 'ashnh@hotmail.com';
 
 --test for the ~ and !~ operators.
+SELECT * from test_email where a ~ b;
 select * from test_email where a ~ 'xxx@mail.com';
 select * from test_email where b !~ 'x@zmail.unsw.edu.au';
+
+
+--Some tests for hash functons.
+
+create table UserSessions (
+   username  email,
+   loggedIn  timestamp,
+   loggedOut timestamp
+   -- etc. etc.
+);
+
+insert into UserSessions(username,loggedIn,loggedOut) values
+('jas@cse.unsw.edu.au','2012-07-01 15:45:55','2012-07-01 15:51:20'),
+('jas@cse.unsw.EDU.AU','2012-07-01 15:50:30','2012-07-01 15:53:15'),
+('z9987654@unsw.edu.au','2012-07-01 15:51:10','2012-07-01 16:01:05'),
+('m.mouse@disney.com','2012-07-01 15:51:11','2012-07-01 16:01:06'),
+('a-user@fast-money.com','2012-07-01 15:52:25','2012-07-01 16:10:15')
+;
+--(...XXX..)
+
+-- create the support function too
+CREATE FUNCTION pjw(email) RETURNS int4
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+
+-- now we can make the operator class
+-------------------------Only 5 operators can be generated, careful!!!!------------
+CREATE OPERATOR CLASS email_abs_ops
+    DEFAULT FOR TYPE email USING hash AS
+        OPERATOR        1       = ,
+        FUNCTION        1       pjw(email);
+
+
+create index on UserSessions using hash (username);
+
+select a.username, a.loggedIn, b.loggedIn
+from   UserSessions a, UserSessions b
+where  a.username = b.username and a.loggedIn <> b.loggedIn;
+
+select count(*)
+from   UserSessions;
+--group  by path;
+drop table UserSessions;

@@ -7,18 +7,20 @@
   called by the backend in the process of processing queries.  The calling
   format for these routines is dictated by Postgres architecture.
 ******************************************************************************/
+#define MAXLEN 128
 
 #include "postgres.h"
 
 #include "fmgr.h"
 #include "libpq/pqformat.h"		/* needed for send/recv functions */
 #include <regex.h>
+#include <sys/types.h>
 
 PG_MODULE_MAGIC;
 
 typedef struct Email{
-    char local[128];
-    char domain[128];
+    char local[MAXLEN];
+    char domain[MAXLEN];
     //char *local;
     //char *domain;
 } Email;
@@ -47,13 +49,15 @@ Datum email_abs_cmp(PG_FUNCTION_ARGS);
 Datum pjw(PG_FUNCTION_ARGS);
 int PJWHash(char *);
 
-char *strlwr(char *);
+void strlwr(char *);
 bool is_valid_email(char *);
 bool is_valid_local(char *);
 bool is_valid_domain(char *);
 bool is_name_part(char **);
 bool is_name_parts(char **);
 bool is_name_chars(char **);
+
+// int check(char*);
 
 /*
   Datum		complex_abs_lt(PG_FUNCTION_ARGS);
@@ -74,38 +78,40 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-    char *local = (char *) malloc(sizeof(char) * 128);
-    char *domain = (char *) malloc(sizeof(char) * 128);
-    //char *local = (char *) malloc(sizeof(char *));
-    //char *domain = (char *) malloc(sizeof(char *));
+    // char *local = (char *) malloc(sizeof(char *));
+    // char *domain = (char *) malloc(sizeof(char *));
+   // char local[MAXLEN];
+   // char domain[MAXLEN];
 //    char *local = (char *) palloc(sizeof(128));
 //    char *domain = (char *) palloc(sizeof(128));
     Email *result;
 
-    char *email = strlwr(str);
+    char email[strlen(str)+1];
+    strcpy(email, str);
+    strlwr(email);
+    email[strlen(str)] = '\0';
 
-//    if (sscanf(email, "%[_a-zA-Z0-9.]@%[_a-zA-Z0-9.]", local, domain) != 2)
-//        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-//                 errmsg("invalid input syntax for email: \"%s\"", str)));
 
-    /*
     if ( !is_valid_email(email) ) {
-    	ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-    			errmsg("invalid input syntax for email: \"%s\"", str)));
+        ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+                errmsg("invalid input syntax for email: \"%s\"", str)));
     }
-    */
-    //email = strlwr(str);
-    sscanf(email, "%[-a-zA-Z0-9.]@%[-a-zA-Z0-9.]", local, domain);
+
+    // email = strlwr(str);
+    // sscanf(email, "%[-a-z0-9.]@%[-a-z0-9.]", local, domain);
 
     result = (Email *) palloc(sizeof(Email));
-    strcpy(result->local,  local);
-    strcpy(result->domain,  domain);
-    //result->local = local;
-    //result->domain = domain;
+    // result->local = (char *) palloc(sizeof(char) * 128);
+    // result->domain = (char *) palloc(sizeof(char) * 128);
+    sscanf(email, "%[-a-z0-9.]@%[-a-z0-9.]", result->local, result->domain);
+    // result->local = local;
+    // result->domain = domain;
+    
+    if ((strlen(result->local) > MAXLEN) || (strlen(result->domain) > MAXLEN)) {
+     ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+                     errmsg("the input should be less than 257 characters.")));
+    }
 
-    //free(local);
-    //free(domain);
-//    free(email);
     PG_RETURN_POINTER(result);
 }
 
@@ -119,9 +125,6 @@ email_out(PG_FUNCTION_ARGS) {
     result = (char *) palloc(257);
     snprintf(result, 257, "%s@%s", email->local, email->domain);
     PG_RETURN_CSTRING(result);
-
-	//	Datum email = PG_GETARG_DATUM(0);
-//	PG_RETURN_CSTRING(TextDatumGetCString(email));
 }
 
 /*****************************************************************************
@@ -325,15 +328,35 @@ int PJWHash(char *str) {
     return (int)hash;  
 }  
 
-bool is_valid_email(char *email) {
-    char *local = (char *) malloc(sizeof(char *));
-    char *domain = (char *) malloc(sizeof(char *));
+void strlwr(char *string) {
+    size_t len = strlen(string);
+
+    // char *email = malloc(sizeof(char) * (len+1));
+    int i;
+    for (i = 0; i < len; ++i)
+    {
+        if (isalpha(string[i]))
+        {
+            string[i] = ((unsigned int)tolower(string[i]));
+
+        } 
+        // else {
+        //  email[i] = string[i];
+        // }
+    }
+    // email[len] = '\0';
+    // return email;
+}
+
+bool is_valid_email(char email[]) {
+    char *local = (char *) palloc(sizeof(char *));
+    char *domain = (char *) palloc(sizeof(char *));
     char *reg_exp_mail = "^[a-z0-9.-]+@[a-z0-9.-]+$";
     regex_t regex;
     int pre;
     pre = regcomp(&regex,reg_exp_mail,1);
     pre = regexec(&regex, email, 0, NULL, 0);
-    if(pre){ // incorrect
+    if(pre){ // invalid email regex
         return false;
     }
     regfree (&regex);
@@ -345,13 +368,9 @@ bool is_valid_email(char *email) {
     }
 
     if (!is_valid_local(local)) {
-        //free(local);
-        //free(domain);
         return false;
     }
     if(!is_valid_domain(domain)) {
-        //free(local);
-        //free(domain);
         return false;
     }
     //free(local);
@@ -359,105 +378,103 @@ bool is_valid_email(char *email) {
     return true;
 }
 
-char *strlwr(char *string) {
-	int len = strlen(string);
-
-	char *email = malloc(sizeof(char) * (len+1));
-
-        int i;
-	for (i = 0; i < len; ++i)
-	{
-		if (isalpha(string[i]))
-		{
-			email[i] = tolower(string[i]);
-
-		} else {
-			email[i] = string[i];
-		}
-	}
-	email[len] = '\0';
-	return email;
-}
-
 bool is_valid_local(char *loc) {
-	if (!is_name_part(&loc)) {
-		printf("name_part_false\n");
-		return false;
-	}
-	if (!is_name_parts(&loc)){
-		printf("name_parts_false\n");
-		return false;
-	}
-	if (*loc != '\0') {
-		return false;
-	}
-	return true;
+    if (!is_name_part(&loc)) {
+        printf("name_part_false\n");
+        return false;
+    }
+    if (!is_name_parts(&loc)){
+        printf("name_parts_false\n");
+        return false;
+    }
+    if (*loc != '\0') {
+        return false;
+    }
+    return true;
 }
 
 bool is_valid_domain(char *dom) {
-	if ( !is_name_part(&dom) ) {
-		return false;
-	}
-	if ( (*dom) == '.' ) {
-		dom++;
-		if ( !is_name_part(&dom) ) {
-			return false;
-		}
-		if ( !is_name_parts(&dom) ) {
-			return false;
-		}
-	} else {
-		return false;
-	}
-	if (*dom != '\0') {
-		return false;
-	}
-	return true;
+    if ( !is_name_part(&dom) ) {
+        return false;
+    }
+    if ( (*dom) == '.' ) {
+        dom++;
+        if ( !is_name_part(&dom) ) {
+            return false;
+        }
+        if ( !is_name_parts(&dom) ) {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    if (*dom != '\0') {
+        return false;
+    }
+    return true;
 }
 
 bool is_name_part(char **pt_to_str) {
-	if (!isalpha(*(*pt_to_str))) {
-		return false;
-	}
-	while (isalpha(*(*pt_to_str))) {
-		(*pt_to_str)++;
-	}
-	if (!is_name_chars(pt_to_str)) {
-		return false;
-	}
-	if ((*(*pt_to_str)) == '\0') {
-		return true;
-	}
-	return true;
+    if (!isalpha(*(*pt_to_str))) {
+        return false;
+    }
+    while (isalpha(*(*pt_to_str))) {
+        (*pt_to_str)++;
+    }
+    if (!is_name_chars(pt_to_str)) {
+        return false;
+    }
+    if ((*(*pt_to_str)) == '\0') {
+        return true;
+    }
+    return true;
 }
 
 bool is_name_parts(char **pt_to_str) {
-	if ( (*(*pt_to_str)) == '\0' ) {
-		return true;
-	}
-	if ( (*(*pt_to_str)) == '.' ) {
-		(*pt_to_str)++;
-		if ( !is_name_part(pt_to_str) ) {
-			return false;
-		}
-		if ( !is_name_parts(pt_to_str) ) {
-			return false;
-		}
-	}
-	return true; // should never reach here.
+    if ( (*(*pt_to_str)) == '\0' ) {
+        return true;
+    }
+    if ( (*(*pt_to_str)) == '.' ) {
+        (*pt_to_str)++;
+        if ( !is_name_part(pt_to_str) ) {
+            return false;
+        }
+        if ( !is_name_parts(pt_to_str) ) {
+            return false;
+        }
+    }
+    return true; // should never reach here.
 }
 
 bool is_name_chars(char **pt_to_str) {
-	while (isalpha(*(*pt_to_str)) || isdigit(*(*pt_to_str)) || ((*(*pt_to_str)) == '-')) {
-		if ((*(*pt_to_str)) == '-') {
-			if (*((*pt_to_str)+1) == '\0') {
-				return false;
-			}
-		}
-		(*pt_to_str)++;
-	}
-	return true;
+    while (isalpha(*(*pt_to_str)) || isdigit(*(*pt_to_str)) || ((*(*pt_to_str)) == '-')) {
+        if ((*(*pt_to_str)) == '-') {
+            if (*((*pt_to_str)+1) == '\0') {
+                return false;
+            }
+        }
+        (*pt_to_str)++;
+    }
+    return true;
 }
+// int check(char* email_address){
+//     int status, i;
+//     int cflags = REG_EXTENDED;
+//     regmatch_t pmatch[1];
+//     const size_t nmatch = 1;
+//     regex_t reg;
+//     const char * pattern="^[a-zA-Z]+([\\w-]*\\w+)*(\\.[a-zA-Z]+([\\w-]*\\w+)*)*@[a-zA-Z]+([\\w-]*\\w+)*\\.[a-zA-Z]+([\\w-]*\\w+)*(\\.[a-zA-Z]+([\\w-]*\\w+)*)*$";
+//     regcomp(&reg, pattern, cflags);
+//     status = regexec(&reg, email_address, nmatch, pmatch, 0);
+//     if (status == REG_NOMATCH) {
+//         regfree(&reg);
+//         return 0;
+//     }
+//     else if (status == 0){
+//         regfree(&reg);
+//         return 1;
+//     }
+// }
 
 
 // end of check
