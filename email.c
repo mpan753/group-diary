@@ -12,7 +12,7 @@
 #include "postgres.h"
 
 #include "fmgr.h"
-#include "libpq/pqformat.h"		/* needed for send/recv functions */
+#include "libpq/pqformat.h"     /* needed for send/recv functions */
 #include <regex.h>
 #include <sys/types.h>
 
@@ -60,12 +60,12 @@ bool is_name_chars(char **);
 // int check(char*);
 
 /*
-  Datum		complex_abs_lt(PG_FUNCTION_ARGS);
-  Datum		complex_abs_le(PG_FUNCTION_ARGS);
-  Datum		complex_abs_eq(PG_FUNCTION_ARGS);
-  Datum		complex_abs_ge(PG_FUNCTION_ARGS);
-  Datum		complex_abs_gt(PG_FUNCTION_ARGS);
-  Datum		complex_abs_cmp(PG_FUNCTION_ARGS);
+  Datum     complex_abs_lt(PG_FUNCTION_ARGS);
+  Datum     complex_abs_le(PG_FUNCTION_ARGS);
+  Datum     complex_abs_eq(PG_FUNCTION_ARGS);
+  Datum     complex_abs_ge(PG_FUNCTION_ARGS);
+  Datum     complex_abs_gt(PG_FUNCTION_ARGS);
+  Datum     complex_abs_cmp(PG_FUNCTION_ARGS);
 */
 
 
@@ -78,8 +78,6 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-    // char *local = (char *) malloc(sizeof(char *));
-    // char *domain = (char *) malloc(sizeof(char *));
    // char local[MAXLEN];
    // char domain[MAXLEN];
 //    char *local = (char *) palloc(sizeof(128));
@@ -97,7 +95,6 @@ email_in(PG_FUNCTION_ARGS) {
                 errmsg("invalid input syntax for email: \"%s\"", str)));
     }
 
-    // email = strlwr(str);
     // sscanf(email, "%[-a-z0-9.]@%[-a-z0-9.]", local, domain);
 
     result = (Email *) palloc(sizeof(Email));
@@ -137,7 +134,7 @@ PG_FUNCTION_INFO_V1(email_recv);
 
 Datum
 email_recv(PG_FUNCTION_ARGS) {
-    StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
+    StringInfo  buf = (StringInfo) PG_GETARG_POINTER(0);
     Email *result;
 
     result = (Email *) palloc(sizeof(Email));
@@ -152,13 +149,13 @@ PG_FUNCTION_INFO_V1(email_send);
 
 Datum
 email_send(PG_FUNCTION_ARGS) {
-	Email *email = (Email *) PG_GETARG_POINTER(0);
-	StringInfoData buf;
+    Email *email = (Email *) PG_GETARG_POINTER(0);
+    StringInfoData buf;
 
-	pq_begintypsend(&buf);
-	pq_sendstring(&buf, email->local);
-	pq_sendstring(&buf, email->domain);
-	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+    pq_begintypsend(&buf);
+    pq_sendstring(&buf, email->local);
+    pq_sendstring(&buf, email->domain);
+    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 /*****************************************************************************
@@ -176,7 +173,7 @@ email_send(PG_FUNCTION_ARGS) {
  * It's essential that the comparison operators and support function for a
  * B-tree index opclass always agree on the relative ordering of any two
  * data values.  Experience has shown that it's depressingly easy to write
- * unintentionally inconsistent functions.	One way to reduce the odds of
+ * unintentionally inconsistent functions.  One way to reduce the odds of
  * making a mistake is to make all the functions simple wrappers around
  * an internal three-way-comparison function, as we do here.
  *****************************************************************************/

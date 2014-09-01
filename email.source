@@ -14,14 +14,14 @@
 
 -----------------------------
 -- Creating a new type:
---	We are going to create a new type called 'email' which represents
---	email address.
---	A user-defined type must have an input and an output function, and
---	optionally can have binary input and output functions.  All of these
---	are usually user-defined C functions.
+--  We are going to create a new type called 'email' which represents
+--  email address.
+--  A user-defined type must have an input and an output function, and
+--  optionally can have binary input and output functions.  All of these
+--  are usually user-defined C functions.
 -----------------------------
 
--- Assume the user defined functions are in _OBJWD_/email$DLSUFFIX
+-- Assume the user defined functions are in /Users/mia/source/code/postgresql-9.3.4/src/tutorial/email$DLSUFFIX
 -- (we do not want to assume this is in the dynamic loader search path).
 -- Look at $PWD/email.c for the source.  Note that we declare all of
 -- them as STRICT, so we do not need to cope with NULL inputs in the
@@ -30,7 +30,7 @@
 
 -- clean up the example
 DROP TABLE test_email;
-DROP TYPE email CASCADE;
+DROP TYPE EmailAddress CASCADE;
 
 -- the input function 'email_in' takes a null-terminated string (the
 -- textual representation of the type) and turns it into the internal
@@ -39,39 +39,39 @@ DROP TYPE email CASCADE;
 
 
 CREATE FUNCTION email_in(cstring)
-   RETURNS email
-   AS '_OBJWD_/email'
+   RETURNS EmailAddress
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the output function 'email_out' takes the internal representation and
 -- converts it into the textual representation.
 
-CREATE FUNCTION email_out(email)
+CREATE FUNCTION email_out(EmailAddress)
    RETURNS cstring
-   AS '_OBJWD_/email'
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the binary input function 'email_recv' takes a StringInfo buffer
 -- and turns its contents into the internal representation.
 
 CREATE FUNCTION email_recv(internal)
-   RETURNS email
-   AS '_OBJWD_/email'
+   RETURNS EmailAddress
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the binary output function 'email_send' takes the internal representation
 -- and converts it into a (hopefully) platform-independent bytea string.
 
-CREATE FUNCTION email_send(email)
+CREATE FUNCTION email_send(EmailAddress)
    RETURNS bytea
-   AS '_OBJWD_/email'
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 
 -- now, we can create the type. The internallength specifies the size of the
 -- memory block required to hold the type (we need two 128 byte parts plus '@').
 
-CREATE TYPE email (
+CREATE TYPE EmailAddress (
    internallength = 257,
    input = email_in,
    output = email_out,
@@ -86,14 +86,14 @@ CREATE TYPE email (
 
 -----------------------------
 -- Using the new type:
---	user-defined types can be used like ordinary built-in types.
+--  user-defined types can be used like ordinary built-in types.
 -----------------------------
 
 -- eg. we can use it in a table
 
 CREATE TABLE test_email (
-   a email,
-   b email
+   a EmailAddress,
+   b EmailAddress
 );
 
 -- data for user-defined types are just strings in the proper textual
@@ -107,85 +107,85 @@ SELECT * FROM test_email;
 
 -----------------------------
 -- Interfacing New Types with Indexes:
---	We cannot define a secondary index (eg. a B-tree) over the new type
---	yet. We need to create all the required operators and support
+--  We cannot define a secondary index (eg. a B-tree) over the new type
+--  yet. We need to create all the required operators and support
 --      functions, then we can make the operator class.
 -----------------------------
 
 -- first, define the required operators
-CREATE FUNCTION email_abs_lt(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_le(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_eq(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_ge(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_gt(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_ne(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_same_domain(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
-CREATE FUNCTION email_abs_not_same_domain(email, email) RETURNS bool
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_lt(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_le(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_eq(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_ge(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_gt(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_ne(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_same_domain(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_not_same_domain(EmailAddress, EmailAddress) RETURNS bool
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OPERATOR < (
-   leftarg = email, rightarg = email, procedure = email_abs_lt,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_lt,
    commutator = > , negator = >= ,
    restrict = scalarltsel, join = scalarltjoinsel
 );
 CREATE OPERATOR <= (
-   leftarg = email, rightarg = email, procedure = email_abs_le,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_le,
    commutator = >= , negator = > ,
    restrict = scalarltsel, join = scalarltjoinsel
 );
 CREATE OPERATOR = (
-   leftarg = email, rightarg = email, procedure = email_abs_eq,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_eq,
    commutator = = , negator = <> ,
    restrict = eqsel, join = eqjoinsel ,
    HASHES
 );
 CREATE OPERATOR >= (
-   leftarg = email, rightarg = email, procedure = email_abs_ge,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_ge,
    commutator = <= , negator = < ,
    restrict = scalargtsel, join = scalargtjoinsel
 );
 CREATE OPERATOR > (
-   leftarg = email, rightarg = email, procedure = email_abs_gt,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_gt,
    commutator = < , negator = <= ,
    restrict = scalargtsel, join = scalargtjoinsel
 );
 CREATE OPERATOR <> (
-   leftarg = email, rightarg = email, procedure = email_abs_ne,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_ne,
    commutator = <> , negator = = ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR ~ (
-   leftarg = email, rightarg = email, procedure = email_abs_same_domain,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_same_domain,
    commutator = ~ , negator = !~ ,
    restrict = eqsel, join = eqjoinsel
 );
 CREATE OPERATOR !~ (
-   leftarg = email, rightarg = email, procedure = email_abs_not_same_domain,
+   leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_not_same_domain,
    commutator = !~ , negator = ~ ,
    restrict = eqsel, join = eqjoinsel
 );
 
 -- create the support function too
-CREATE FUNCTION email_abs_cmp(email, email) RETURNS int4
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION email_abs_cmp(EmailAddress, EmailAddress) RETURNS int4
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
 -------------------------Only 5 operators can be generated, careful!!!!------------
 CREATE OPERATOR CLASS email_abs_ops
-    DEFAULT FOR TYPE email USING btree AS
+    DEFAULT FOR TYPE EmailAddress USING btree AS
         OPERATOR        1       < ,
         OPERATOR        2       <= ,
         OPERATOR        3       = ,
         OPERATOR        4       >= ,
         OPERATOR        5       > ,
-        FUNCTION        1       email_abs_cmp(email, email);
+        FUNCTION        1       email_abs_cmp(EmailAddress, EmailAddress);
 
 
 -- now, we can define a btree index on email types. First, let's populate
@@ -211,7 +211,7 @@ select * from test_email where b !~ 'x@zmail.unsw.edu.au';
 --Some tests for hash functons.
 
 create table UserSessions (
-   username  email,
+   username  EmailAddress,
    loggedIn  timestamp,
    loggedOut timestamp
    -- etc. etc.
@@ -227,15 +227,15 @@ insert into UserSessions(username,loggedIn,loggedOut) values
 --(...XXX..)
 
 -- create the support function too
-CREATE FUNCTION pjw(email) RETURNS int4
-   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
+CREATE FUNCTION pjw(EmailAddress) RETURNS int4
+   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
 -------------------------Only 5 operators can be generated, careful!!!!------------
 CREATE OPERATOR CLASS email_abs_ops
-    DEFAULT FOR TYPE email USING hash AS
+    DEFAULT FOR TYPE EmailAddress USING hash AS
         OPERATOR        1       = ,
-        FUNCTION        1       pjw(email);
+        FUNCTION        1       pjw(EmailAddress);
 
 
 create index on UserSessions using hash (username);
