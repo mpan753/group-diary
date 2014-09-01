@@ -40,7 +40,7 @@ DROP TYPE EmailAddress CASCADE;
 
 CREATE FUNCTION email_in(cstring)
    RETURNS EmailAddress
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
+   AS '_OBJWD_/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the output function 'email_out' takes the internal representation and
@@ -48,7 +48,7 @@ CREATE FUNCTION email_in(cstring)
 
 CREATE FUNCTION email_out(EmailAddress)
    RETURNS cstring
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
+   AS '_OBJWD_/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the binary input function 'email_recv' takes a StringInfo buffer
@@ -56,7 +56,7 @@ CREATE FUNCTION email_out(EmailAddress)
 
 CREATE FUNCTION email_recv(internal)
    RETURNS EmailAddress
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
+   AS '_OBJWD_/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 -- the binary output function 'email_send' takes the internal representation
@@ -64,7 +64,7 @@ CREATE FUNCTION email_recv(internal)
 
 CREATE FUNCTION email_send(EmailAddress)
    RETURNS bytea
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email'
+   AS '_OBJWD_/email'
    LANGUAGE C IMMUTABLE STRICT;
 
 
@@ -114,21 +114,21 @@ SELECT * FROM test_email;
 
 -- first, define the required operators
 CREATE FUNCTION email_abs_lt(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_le(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_eq(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_ge(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_gt(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_ne(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_same_domain(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 CREATE FUNCTION email_abs_not_same_domain(EmailAddress, EmailAddress) RETURNS bool
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OPERATOR < (
    leftarg = EmailAddress, rightarg = EmailAddress, procedure = email_abs_lt,
@@ -174,7 +174,7 @@ CREATE OPERATOR !~ (
 
 -- create the support function too
 CREATE FUNCTION email_abs_cmp(EmailAddress, EmailAddress) RETURNS int4
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
 -------------------------Only 5 operators can be generated, careful!!!!------------
@@ -228,7 +228,7 @@ insert into UserSessions(username,loggedIn,loggedOut) values
 
 -- create the support function too
 CREATE FUNCTION pjw(EmailAddress) RETURNS int4
-   AS '/Users/mia/source/code/postgresql-9.3.4/src/tutorial/email' LANGUAGE C IMMUTABLE STRICT;
+   AS '_OBJWD_/email' LANGUAGE C IMMUTABLE STRICT;
 
 -- now we can make the operator class
 -------------------------Only 5 operators can be generated, careful!!!!------------
