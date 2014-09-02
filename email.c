@@ -302,7 +302,7 @@ pjw(PG_FUNCTION_ARGS) {
     int local_hash = PJWHash(local);
     int domain_hash = PJWHash(domain);
 
-    int hash = local_hash + domain_hash;
+    int hash = 2 * local_hash + domain_hash;
     PG_RETURN_INT32(hash);
 }
 /* The actual hash algorithm, taken from website */
