@@ -10,19 +10,20 @@
 #define MAXLEN 128
 
 #include "postgres.h"
-
+#include "libpq/pqformat.h"
+#include "string.h"
 #include "fmgr.h"
 #include "libpq/pqformat.h"     /* needed for send/recv functions */
 #include <regex.h>
 #include <sys/types.h>
+#include "catalog/pg_type.h"
+#include "utils/builtins.h"
 
 PG_MODULE_MAGIC;
 
 typedef struct Email{
     char local[MAXLEN];
     char domain[MAXLEN];
-    //char *local;
-    //char *domain;
 } Email;
 
 
@@ -33,6 +34,8 @@ typedef struct Email{
  */
 Datum email_in(PG_FUNCTION_ARGS);
 Datum email_out(PG_FUNCTION_ARGS);
+Datum email_recv(PG_FUNCTION_ARGS);
+Datum email_send(PG_FUNCTION_ARGS);
 
 Datum email_abs_lt(PG_FUNCTION_ARGS);
 Datum email_abs_le(PG_FUNCTION_ARGS);
@@ -57,15 +60,19 @@ bool is_name_part(char **);
 bool is_name_parts(char **);
 bool is_name_chars(char **);
 
-// int check(char*);
-
 /*
-  Datum     complex_abs_lt(PG_FUNCTION_ARGS);
-  Datum     complex_abs_le(PG_FUNCTION_ARGS);
-  Datum     complex_abs_eq(PG_FUNCTION_ARGS);
-  Datum     complex_abs_ge(PG_FUNCTION_ARGS);
-  Datum     complex_abs_gt(PG_FUNCTION_ARGS);
-  Datum     complex_abs_cmp(PG_FUNCTION_ARGS);
+    Datum email_in(PG_FUNCTION_ARGS);
+    Datum email_out(PG_FUNCTION_ARGS);
+    Datum email_abs_lt(PG_FUNCTION_ARGS);
+    Datum email_abs_le(PG_FUNCTION_ARGS);
+    Datum email_abs_eq(PG_FUNCTION_ARGS);
+    Datum email_abs_ge(PG_FUNCTION_ARGS);
+    Datum email_abs_gt(PG_FUNCTION_ARGS);
+    Datum email_abs_ne(PG_FUNCTION_ARGS);
+    Datum email_abs_same_domain(PG_FUNCTION_ARGS);
+    Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
+    Datum email_abs_cmp(PG_FUNCTION_ARGS);
+    Datum pjw(PG_FUNCTION_ARGS);
 */
 
 
@@ -78,10 +85,6 @@ PG_FUNCTION_INFO_V1(email_in);
 Datum
 email_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
-   // char local[MAXLEN];
-   // char domain[MAXLEN];
-//    char *local = (char *) palloc(sizeof(128));
-//    char *domain = (char *) palloc(sizeof(128));
     Email *result;
 
     char email[strlen(str)+1];
@@ -95,14 +98,8 @@ email_in(PG_FUNCTION_ARGS) {
                 errmsg("invalid input syntax for email: \"%s\"", str)));
     }
 
-    // sscanf(email, "%[-a-z0-9.]@%[-a-z0-9.]", local, domain);
-
     result = (Email *) palloc(sizeof(Email));
-    // result->local = (char *) palloc(sizeof(char) * 128);
-    // result->domain = (char *) palloc(sizeof(char) * 128);
     sscanf(email, "%[-a-z0-9.]@%[-a-z0-9.]", result->local, result->domain);
-    // result->local = local;
-    // result->domain = domain;
     
     if ((strlen(result->local) > MAXLEN) || (strlen(result->domain) > MAXLEN)) {
      ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
@@ -140,9 +137,18 @@ email_recv(PG_FUNCTION_ARGS) {
     result = (Email *) palloc(sizeof(Email));
     strcpy(result->local, pq_getmsgstring(buf));
     strcpy(result->domain, pq_getmsgstring(buf));
-    //result->local = pq_getmsgstring(buf);
-    //result->domain = pq_getmsgstring(buf);
+
     PG_RETURN_POINTER(result);
+
+    // new version
+    // BpChar *result = (BpChar *) palloc(1);
+    // char *str;
+    // int nbytes;
+
+    // str = pq_getmsgtext(buf, buf->len - buf->cursor, &nbytes);
+    // memcpy(result, str, nbytes);
+    // pfree(str);
+    // PG_RETURN_BPCHAR_P(result);
 }
 
 PG_FUNCTION_INFO_V1(email_send);
@@ -156,6 +162,14 @@ email_send(PG_FUNCTION_ARGS) {
     pq_sendstring(&buf, email->local);
     pq_sendstring(&buf, email->domain);
     PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+
+    // new version
+    // char *s = (char *)PG_GETARG_CHAR(0);
+    // StringInfoData buf;
+
+    // pq_begintypsend(&buf);
+    // pq_sendtext(&buf, s, strlen(s));
+    // PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 /*****************************************************************************
@@ -327,22 +341,14 @@ int PJWHash(char *str) {
 
 void strlwr(char *string) {
     size_t len = strlen(string);
-
-    // char *email = malloc(sizeof(char) * (len+1));
     int i;
     for (i = 0; i < len; ++i)
     {
         if (isalpha(string[i]))
         {
             string[i] = ((unsigned int)tolower(string[i]));
-
         } 
-        // else {
-        //  email[i] = string[i];
-        // }
     }
-    // email[len] = '\0';
-    // return email;
 }
 
 bool is_valid_email(char email[]) {
@@ -359,8 +365,6 @@ bool is_valid_email(char email[]) {
     regfree (&regex);
 
     if ( sscanf(email, "%[-a-zA-Z0-9.]@%s", local, domain) != 2 ) {
-        //free(local);
-        //free(domain);
         return false;
     }
 
@@ -370,8 +374,6 @@ bool is_valid_email(char email[]) {
     if(!is_valid_domain(domain)) {
         return false;
     }
-    //free(local);
-    //free(domain);
     return true;
 }
 
@@ -454,24 +456,3 @@ bool is_name_chars(char **pt_to_str) {
     }
     return true;
 }
-// int check(char* email_address){
-//     int status, i;
-//     int cflags = REG_EXTENDED;
-//     regmatch_t pmatch[1];
-//     const size_t nmatch = 1;
-//     regex_t reg;
-//     const char * pattern="^[a-zA-Z]+([\\w-]*\\w+)*(\\.[a-zA-Z]+([\\w-]*\\w+)*)*@[a-zA-Z]+([\\w-]*\\w+)*\\.[a-zA-Z]+([\\w-]*\\w+)*(\\.[a-zA-Z]+([\\w-]*\\w+)*)*$";
-//     regcomp(&reg, pattern, cflags);
-//     status = regexec(&reg, email_address, nmatch, pmatch, 0);
-//     if (status == REG_NOMATCH) {
-//         regfree(&reg);
-//         return 0;
-//     }
-//     else if (status == 0){
-//         regfree(&reg);
-//         return 1;
-//     }
-// }
-
-
-// end of check

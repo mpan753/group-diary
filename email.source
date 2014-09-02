@@ -29,8 +29,8 @@
 -- same outputs given the same inputs.
 
 -- clean up the example
-DROP TABLE test_email;
-DROP TYPE EmailAddress CASCADE;
+DROP TABLE if exists test_email;
+DROP TYPE if exists EmailAddress CASCADE;
 
 -- the input function 'email_in' takes a null-terminated string (the
 -- textual representation of the type) and turns it into the internal
@@ -98,10 +98,23 @@ CREATE TABLE test_email (
 
 -- data for user-defined types are just strings in the proper textual
 -- representation.
-
-INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'kenzoEVE@zmail.unsw.edu.au');
+-- insert some incorrect input.
 INSERT INTO test_email VALUES ('ashnh633-2014@mail.com', 'kenzoEVE@163.com');
-INSERT INTO test_email VALUES ('ashnh@mail.com', 'k633@zmail.unsw.edu.au');
+INSERT INTO test_email VALUES ('"jas"@cse.unsw.edu.au', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('j..shepherd@funny.email.org', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('123jas@marketing.abc.com', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('john@123buynow.com.au', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('jas@cse', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('john@cse.unsw@edu.au', 'mpan753@cse.unsw.edu.au');
+INSERT INTO test_email VALUES ('x--@gmail.com', 'mpan753@cse.unsw.edu.au');
+-- insert some correct input.
+INSERT INTO test_email VALUES ('ashnh@hotmail.com', 'ashnh@mail.com');
+INSERT INTO test_email VALUES ('kenzoEVE@zmail.unsw.edu.au', 'k633@zmail.unsw.edu.au');
+INSERT INTO test_email VALUES ('jas@cse.unsw.edu.au', 'john-shepherd@hotmail.com');
+INSERT INTO test_email VALUES ('john.a.shepherd@gmail.com', 'J.Shepherd@unsw.edu.au');
+INSERT INTO test_email VALUES ('j.a.shepherd@acm.org', 'j-a-shepherd@bargain-hunter.com');
+INSERT INTO test_email VALUES ('jas@a-very-silly-domain.org', 'john1988@my-favourite.org');
+INSERT INTO test_email VALUES ('x-1@gmail.com', 'a@b.com');
 
 SELECT * FROM test_email;
 
@@ -191,9 +204,9 @@ CREATE OPERATOR CLASS email_abs_ops
 -- now, we can define a btree index on email types. First, let's populate
 -- the table. Note that postgres needs many more tuples to start using the
 -- btree index during selects.
-INSERT INTO test_email VALUES ('aaa@bbb.com', 'abc@cde.com');
-INSERT INTO test_email VALUES ('EFG@GHI.com', 'AAAAAAAA@BBBBBB.CC');
-INSERT INTO test_email VALUES ('EFG@hotmail.com', 'AAAAAAAA@hotmail.com');
+-- INSERT INTO test_email VALUES ('aaa@bbb.com', 'abc@cde.com');
+-- INSERT INTO test_email VALUES ('EFG@GHI.com', 'AAAAAAAA@BBBBBB.CC');
+-- INSERT INTO test_email VALUES ('EFG@hotmail.com', 'AAAAAAAA@hotmail.com');
 
 CREATE INDEX test_email_ind ON test_email
    USING btree(a email_abs_ops);
@@ -204,8 +217,9 @@ SELECT * from test_email where a > 'ashnh@hotmail.com';
 
 --test for the ~ and !~ operators.
 SELECT * from test_email where a ~ b;
-select * from test_email where a ~ 'xxx@mail.com';
-select * from test_email where b !~ 'x@zmail.unsw.edu.au';
+select * from test_email where a ~ 'xxx@mail.com' or b ~ 'xxx@mail.com';
+select * from test_email where b !~ 'x@hotmail.com' or b !~ 'x@hotmail.com';
+select * from test_email where a !~ b;
 
 
 --Some tests for hash functons.
@@ -248,3 +262,15 @@ select count(*)
 from   UserSessions;
 --group  by path;
 drop table UserSessions;
+
+-- test email_send function, binary i/o
+create cast(EmailAddress as bytea) with function email_send(EmailAddress) as implicit;
+  select ('jas@cse.unsw.edu.au'::EmailAddress)::bytea;
+  select ('~'):: bytea;
+  SELECT E'\\176'::bytea; -- '~''
+  SELECT E'\\000'::bytea; --'\000'
+  SELECT E'\\\\'::bytea; -- '\\'
+  SELECT E'\''::bytea; --'''
+  SELECT E'\\001'::bytea;
+  SELECT E'\\xDEADBEEF';
+drop cast if exists (EmailAddress as bytea) CASCADE;
