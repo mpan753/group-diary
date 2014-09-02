@@ -1,6 +1,6 @@
 /*
  * src/tutorial/email.c
- * modified by Lujie Wang & Meng Pan
+ * written by Lujie Wang & Meng Pan
  *
  ******************************************************************************
   This file contains routines that can be bound to a Postgres backend and
@@ -50,29 +50,31 @@ Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
 Datum email_abs_cmp(PG_FUNCTION_ARGS);
 
 Datum pjw(PG_FUNCTION_ARGS);
-int PJWHash(char *);
+int PJWHash(char *); 
 
-void strlwr(char *);
-bool is_valid_email(char *);
-bool is_valid_local(char *);
-bool is_valid_domain(char *);
-bool is_name_part(char **);
-bool is_name_parts(char **);
-bool is_name_chars(char **);
+void strlwr(char *); // lower all string characters
+bool is_valid_email(char *); // check if the email is valid
+bool is_valid_local(char *); // check if the local part is valid
+bool is_valid_domain(char *); // check if the domian part is valid
+bool is_name_part(char **); // check if the name part is valid
+bool is_name_parts(char **); // check if the name parts is valid
+bool is_name_chars(char **); // check if the name chars is valid
 
 /*
-    Datum email_in(PG_FUNCTION_ARGS);
-    Datum email_out(PG_FUNCTION_ARGS);
-    Datum email_abs_lt(PG_FUNCTION_ARGS);
-    Datum email_abs_le(PG_FUNCTION_ARGS);
-    Datum email_abs_eq(PG_FUNCTION_ARGS);
-    Datum email_abs_ge(PG_FUNCTION_ARGS);
-    Datum email_abs_gt(PG_FUNCTION_ARGS);
-    Datum email_abs_ne(PG_FUNCTION_ARGS);
-    Datum email_abs_same_domain(PG_FUNCTION_ARGS);
-    Datum email_abs_not_same_domain(PG_FUNCTION_ARGS);
-    Datum email_abs_cmp(PG_FUNCTION_ARGS);
-    Datum pjw(PG_FUNCTION_ARGS);
+    Datum email_in(PG_FUNCTION_ARGS); // input function
+    Datum email_out(PG_FUNCTION_ARGS); // output function
+    Datum email_recv(PG_FUNCTION_ARGS); // binary input function
+    Datum email_send(PG_FUNCTION_ARGS); // binary output funtion
+    Datum email_abs_lt(PG_FUNCTION_ARGS); // <: less than function
+    Datum email_abs_le(PG_FUNCTION_ARGS); // <=: less or equal than function
+    Datum email_abs_eq(PG_FUNCTION_ARGS); // =: absolutely equal function
+    Datum email_abs_ge(PG_FUNCTION_ARGS); // >=: greater or equal than function
+    Datum email_abs_gt(PG_FUNCTION_ARGS); // >: greater than function
+    Datum email_abs_ne(PG_FUNCTION_ARGS); // !=: not equal function
+    Datum email_abs_same_domain(PG_FUNCTION_ARGS); // ~ : domain is same
+    Datum email_abs_not_same_domain(PG_FUNCTION_ARGS); // !~ : domain not same
+    Datum email_abs_cmp(PG_FUNCTION_ARGS); // comparator for btree
+    Datum pjw(PG_FUNCTION_ARGS); // hash 
 */
 
 
@@ -139,16 +141,6 @@ email_recv(PG_FUNCTION_ARGS) {
     strcpy(result->domain, pq_getmsgstring(buf));
 
     PG_RETURN_POINTER(result);
-
-    // new version
-    // BpChar *result = (BpChar *) palloc(1);
-    // char *str;
-    // int nbytes;
-
-    // str = pq_getmsgtext(buf, buf->len - buf->cursor, &nbytes);
-    // memcpy(result, str, nbytes);
-    // pfree(str);
-    // PG_RETURN_BPCHAR_P(result);
 }
 
 PG_FUNCTION_INFO_V1(email_send);
@@ -162,14 +154,6 @@ email_send(PG_FUNCTION_ARGS) {
     pq_sendstring(&buf, email->local);
     pq_sendstring(&buf, email->domain);
     PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
-
-    // new version
-    // char *s = (char *)PG_GETARG_CHAR(0);
-    // StringInfoData buf;
-
-    // pq_begintypsend(&buf);
-    // pq_sendtext(&buf, s, strlen(s));
-    // PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 /*****************************************************************************
@@ -321,7 +305,7 @@ pjw(PG_FUNCTION_ARGS) {
     int hash = local_hash + domain_hash;
     PG_RETURN_INT32(hash);
 }
-
+/* The actual hash algorithm, taken from website */
 int PJWHash(char *str) {  
     long BitsInUnsignedInt = (long)(4 * 8);  
     long ThreeQuarters     = (long)((BitsInUnsignedInt  * 3) / 4);  
@@ -339,6 +323,7 @@ int PJWHash(char *str) {
     return (int)hash;  
 }  
 
+/* This will tolower all characters in a string */
 void strlwr(char *string) {
     size_t len = strlen(string);
     int i;
@@ -350,7 +335,22 @@ void strlwr(char *string) {
         } 
     }
 }
-
+/***********************************************************************
+* EmailAddress ::= Local '@' Domain
+*
+* Local        ::= NamePart NameParts
+*
+* Domain       ::= NamePart '.' NamePart NameParts
+*
+* NamePart     ::= Letter | Letter NameChars (Letter|Digit)
+*
+* NameParts    ::= Empty | '.' NamePart NameParts
+*
+* NameChars    ::= Empty | (Letter|Digit|'-') NameChars
+*
+* Letter       ::= 'a' | 'b' | ... | 'z' | 'A' | 'B' | ... 'Z'
+* Digit        ::= '0' | '1' | '2' | ... | '8' | '9'
+************************************************************************/
 bool is_valid_email(char email[]) {
     char *local = (char *) palloc(sizeof(char *));
     char *domain = (char *) palloc(sizeof(char *));
@@ -379,11 +379,9 @@ bool is_valid_email(char email[]) {
 
 bool is_valid_local(char *loc) {
     if (!is_name_part(&loc)) {
-        printf("name_part_false\n");
         return false;
     }
     if (!is_name_parts(&loc)){
-        printf("name_parts_false\n");
         return false;
     }
     if (*loc != '\0') {

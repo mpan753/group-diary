@@ -204,9 +204,6 @@ CREATE OPERATOR CLASS email_abs_ops
 -- now, we can define a btree index on email types. First, let's populate
 -- the table. Note that postgres needs many more tuples to start using the
 -- btree index during selects.
--- INSERT INTO test_email VALUES ('aaa@bbb.com', 'abc@cde.com');
--- INSERT INTO test_email VALUES ('EFG@GHI.com', 'AAAAAAAA@BBBBBB.CC');
--- INSERT INTO test_email VALUES ('EFG@hotmail.com', 'AAAAAAAA@hotmail.com');
 
 CREATE INDEX test_email_ind ON test_email
    USING btree(a email_abs_ops);
